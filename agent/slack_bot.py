@@ -287,6 +287,9 @@ def deliver_digest(fixture_path=None):
 
 def main():
     import argparse
+    from dotenv import load_dotenv
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="GTM News Agent Slack Bot")
     parser.add_argument("--deliver", action="store_true", help="Run collector+synthesizer and post digest")
     parser.add_argument("--listen", action="store_true", help="Start Socket Mode listener for conversations")

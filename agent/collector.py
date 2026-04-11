@@ -298,6 +298,9 @@ def collect_all(sources=None, dry_run=False):
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Collect GTM/MOPS content from configured sources")
     parser.add_argument("--dry-run", action="store_true", help="Print collected items as JSON without further processing")
     parser.add_argument("--output", type=str, help="Write collected items to a JSON file")

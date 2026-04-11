@@ -108,6 +108,9 @@ def run_full_pipeline(fixture_path=None):
 
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Synthesize weekly GTM/MOPS digest")
     parser.add_argument(
         "--fixture", type=str,
