@@ -72,19 +72,31 @@ def collect_rss(source, cutoff=None):
         logger.warning("Feed error for %s: %s", source["id"], feed.bozo_exception)
         return items
 
+    filter_keywords = [kw.lower() for kw in source.get("filter_keywords", [])]
+
     for entry in feed.entries:
         pub_date = _parse_rss_date(entry)
         if pub_date and pub_date < cutoff:
             continue
 
         snippet = getattr(entry, "summary", "") or ""
+        if snippet:
+            # Strip HTML tags from RSS summaries
+            snippet = BeautifulSoup(snippet, "html.parser").get_text(separator=" ", strip=True)
         if not snippet and hasattr(entry, "link"):
             snippet = _fetch_snippet_from_url(entry.link)
+
+        title = getattr(entry, "title", "")
+
+        if filter_keywords:
+            combined = (title + " " + snippet).lower()
+            if not any(kw in combined for kw in filter_keywords):
+                continue
 
         items.append({
             "source_id": source["id"],
             "source_name": source["name"],
-            "title": getattr(entry, "title", ""),
+            "title": title,
             "url": getattr(entry, "link", ""),
             "published_date": pub_date.strftime("%Y-%m-%d") if pub_date else "",
             "snippet": snippet[:500],

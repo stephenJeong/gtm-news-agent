@@ -47,11 +47,31 @@ def _markdown_to_blocks(digest_text):
     def flush_buffer():
         if buffer:
             text = "\n".join(buffer).strip()
-            if text:
+            if not text:
+                buffer.clear()
+                return
+            # Slack section blocks have a 3000 char limit; split on blank lines
+            if len(text) <= 3000:
                 blocks.append({
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": text},
                 })
+            else:
+                paragraphs = text.split("\n\n")
+                chunk = ""
+                for para in paragraphs:
+                    if chunk and len(chunk) + len(para) + 2 > 3000:
+                        blocks.append({
+                            "type": "section",
+                            "text": {"type": "mrkdwn", "text": chunk.strip()},
+                        })
+                        chunk = ""
+                    chunk += para + "\n\n"
+                if chunk.strip():
+                    blocks.append({
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": chunk.strip()},
+                    })
             buffer.clear()
 
     for line in lines:
