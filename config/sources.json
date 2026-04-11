@@ -1,0 +1,36 @@
+[
+  {
+    "id": "cookingupgtm",
+    "name": "Cooking Up GTM",
+    "type": "substack_rss",
+    "url": "https://cookingupgtm.substack.com/feed"
+  },
+  {
+    "id": "appliedaiformops",
+    "name": "Applied AI for MOPS",
+    "type": "substack_rss",
+    "url": "https://www.appliedaiformops.com/feed"
+  },
+  {
+    "id": "the_moperator",
+    "name": "The MOperator",
+    "type": "website",
+    "url": "https://the-moperator.com/",
+    "article_selector": "article"
+  },
+  {
+    "id": "martech_org",
+    "name": "MarTech.org",
+    "type": "website",
+    "url": "https://martech.org/",
+    "article_selector": "article",
+    "filter_keywords": ["AI", "automation", "marketing ops", "GTM", "lead", "attribution"]
+  },
+  {
+    "id": "mops_strategist_linkedin",
+    "name": "Marketing Operations Strategist (LinkedIn)",
+    "type": "linkedin_apify",
+    "apify_actor": "apify/linkedin-company-posts-scraper",
+    "linkedin_url": "https://www.linkedin.com/company/the-marketing-operations-strategist/"
+  }
+]

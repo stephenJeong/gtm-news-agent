@@ -1,0 +1,20 @@
+{
+  "last_updated": "2026-04-10",
+  "projects": [
+    {
+      "id": "lead_scoring_optimizer",
+      "name": "Lead Scoring Optimizer",
+      "description": "AI-powered tool that analyzes and optimizes Marketo lead scoring models",
+      "url": "https://lead-scoring-optimizer.vercel.app",
+      "completed": true,
+      "tags": ["lead scoring", "marketo", "AI", "scoring model"]
+    },
+    {
+      "id": "campaign_ops_slackbot",
+      "name": "Campaign Operations Assistant Slackbot",
+      "description": "12-phase Slackbot for campaign operations workflows",
+      "completed": true,
+      "tags": ["slack", "campaign ops", "automation", "bot"]
+    }
+  ]
+}
