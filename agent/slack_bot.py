@@ -185,11 +185,12 @@ def _handle_sources():
 
 
 def _handle_digest_now():
-    """Run an immediate digest and return the text."""
+    """Run an immediate digest, post it to the channel, and confirm."""
     try:
         digest = run_full_pipeline()
         if digest:
-            return digest
+            post_digest(digest)
+            return "Digest generated and posted to the channel."
         return "No content collected. Check source configuration and try again."
     except Exception as e:
         logger.error("Digest run failed: %s", e)
@@ -203,13 +204,14 @@ def _handle_digest_now():
 def _process_event(client, req):
     """Handle incoming Socket Mode events."""
     if req.type == "events_api":
+        client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
+
         event = req.payload.get("event", {})
         event_type = event.get("type")
 
         if event_type in ("app_mention", "message"):
             # Skip bot's own messages
             if event.get("bot_id"):
-                client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
                 return
 
             text = event.get("text", "")
@@ -244,7 +246,8 @@ def _process_event(client, req):
             SocketModeResponse(envelope_id=req.envelope_id, payload={"text": response_text})
         )
 
-    client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
+    else:
+        client.send_socket_mode_response(SocketModeResponse(envelope_id=req.envelope_id))
 
 
 def start_socket_mode():
