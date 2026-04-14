@@ -42,7 +42,17 @@ Complexity: [Low / Medium / High]
 ### Also Worth a Look
 - [One sentence + source link]
 - [One sentence + source link]
-- [One sentence + source link]"""
+- [One sentence + source link]
+
+After the digest, emit a machine-readable block of the three Build Recommendations in this exact format (do not include it inside the digest sections above):
+
+<recommendations_json>
+[
+  {{"title": "...", "trend_signal": "...", "what_to_build": "...", "why_now": "...", "complexity": "Low|Medium|High", "inferred": false}},
+  {{"title": "...", "trend_signal": "...", "what_to_build": "...", "why_now": "...", "complexity": "Low|Medium|High", "inferred": false}},
+  {{"title": "...", "trend_signal": "...", "what_to_build": "...", "why_now": "...", "complexity": "Low|Medium|High", "inferred": true}}
+]
+</recommendations_json>"""
 
 CONVERSATION_SYSTEM_PROMPT = """\
 You are a GTM and marketing ops expert assistant. The user just received their weekly digest (included below).
@@ -53,4 +63,7 @@ Answer in the same direct, practitioner-level tone. If they ask about something 
 say so clearly and answer from your own knowledge, noting it's not from this week's sources.
 
 Weekly digest context:
-{digest_text}"""
+{digest_text}
+
+Recommendation history (all prior weeks, including whether Stephen has built them):
+{recommendations_history}"""

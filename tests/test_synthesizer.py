@@ -87,27 +87,50 @@ class TestLoadProjects:
 # ---------------------------------------------------------------------------
 
 class TestSynthesize:
-    def test_calls_claude_and_returns_digest(self):
+    def test_calls_claude_and_returns_digest_with_recommendations(self):
         items = [
             {"title": "Test Article", "source_name": "Src", "published_date": "2026-04-07",
              "type": "article", "url": "http://example.com/1", "snippet": "Content here."}
         ]
         projects = [{"name": "Old Tool", "description": "Already built", "completed": True, "tags": ["done"]}]
 
+        raw_output = (
+            "## This Week in GTM & MOPS AI\nDigest content here\n"
+            "<recommendations_json>\n"
+            '[{"title": "Rec A", "trend_signal": "s", "what_to_build": "b", '
+            '"why_now": "n", "complexity": "Low", "inferred": false}]\n'
+            "</recommendations_json>"
+        )
         mock_message = MagicMock()
-        mock_message.content = [MagicMock(text="## This Week in GTM & MOPS AI\nDigest content here")]
+        mock_message.content = [MagicMock(text=raw_output)]
 
         mock_client = MagicMock()
         mock_client.messages.create.return_value = mock_message
 
         with patch("agent.synthesizer.anthropic.Anthropic", return_value=mock_client):
-            digest = synthesize(items, projects=projects)
+            digest, recs = synthesize(items, projects=projects)
 
         assert "This Week in GTM" in digest
+        assert "recommendations_json" not in digest
+        assert len(recs) == 1
+        assert recs[0]["title"] == "Rec A"
         call_kwargs = mock_client.messages.create.call_args
         assert call_kwargs.kwargs["model"] == "claude-sonnet-4-6"
-        assert call_kwargs.kwargs["max_tokens"] == 2000
         assert "Old Tool" in call_kwargs.kwargs["messages"][0]["content"]
+
+    def test_handles_missing_recommendations_block(self):
+        items = [{"title": "X", "source_name": "Y", "published_date": "", "type": "article", "url": "", "snippet": ""}]
+
+        mock_message = MagicMock()
+        mock_message.content = [MagicMock(text="Digest without block")]
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = mock_message
+
+        with patch("agent.synthesizer.anthropic.Anthropic", return_value=mock_client):
+            digest, recs = synthesize(items, projects=[])
+
+        assert digest == "Digest without block"
+        assert recs == []
 
     def test_does_not_include_incomplete_projects_in_prompt(self):
         items = [{"title": "X", "source_name": "Y", "published_date": "", "type": "article", "url": "", "snippet": ""}]

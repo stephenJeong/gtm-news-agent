@@ -216,13 +216,24 @@ class TestHandleSources:
 
 
 class TestHandleDigestNow:
-    def test_runs_pipeline_and_posts(self):
-        with patch("agent.slack_bot.run_full_pipeline", return_value="## Digest"), \
-             patch("agent.slack_bot.post_digest") as mock_post:
+    def test_runs_pipeline_posts_and_persists_recs(self, tmp_path):
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({"last_updated": "", "recommendations": []}))
+
+        fake_recs = [
+            {"title": "Rec A", "trend_signal": "s", "what_to_build": "b",
+             "why_now": "n", "complexity": "Low", "inferred": False}
+        ]
+        with patch("agent.slack_bot.run_full_pipeline", return_value=("## Digest", fake_recs)), \
+             patch("agent.slack_bot.post_digest") as mock_post, \
+             patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
             result = _handle_digest_now()
 
         mock_post.assert_called_once_with("## Digest")
         assert "posted" in result.lower()
+        stored = json.loads(recs_file.read_text())
+        assert len(stored["recommendations"]) == 1
+        assert stored["recommendations"][0]["title"] == "Rec A"
 
     def test_handles_no_content(self):
         with patch("agent.slack_bot.run_full_pipeline", return_value=None):
@@ -233,6 +244,97 @@ class TestHandleDigestNow:
         with patch("agent.slack_bot.run_full_pipeline", side_effect=Exception("API down")):
             result = _handle_digest_now()
         assert "failed" in result.lower()
+
+
+class TestHandleProjectDoneLinking:
+    def test_links_recommendation_when_rec_id_given(self, tmp_path):
+        projects_file = tmp_path / "projects.json"
+        projects_file.write_text(json.dumps({"last_updated": "", "projects": []}))
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({
+            "last_updated": "2026-04-14",
+            "recommendations": [{
+                "id": "2026-04-14_1",
+                "title": "Rec A",
+                "status": "recommended",
+                "built_project_id": None,
+            }],
+        }))
+
+        with patch.object(slack_bot_module, "MEMORY_PATH", str(projects_file)), \
+             patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
+            result = _handle_project_done("rec=2026-04-14_1 Lead Router: territory based")
+
+        assert "Lead Router" in result
+        assert "Linked" in result
+        recs = json.loads(recs_file.read_text())["recommendations"]
+        assert recs[0]["status"] == "built"
+        assert recs[0]["built_project_id"] == "lead_router"
+
+    def test_warns_on_unknown_rec_id(self, tmp_path):
+        projects_file = tmp_path / "projects.json"
+        projects_file.write_text(json.dumps({"last_updated": "", "projects": []}))
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({"last_updated": "", "recommendations": []}))
+
+        with patch.object(slack_bot_module, "MEMORY_PATH", str(projects_file)), \
+             patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
+            result = _handle_project_done("rec=nope_1 Thing: desc")
+
+        assert "not found" in result
+
+
+class TestHandleRecommendations:
+    def test_empty_store(self, tmp_path):
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({"last_updated": "", "recommendations": []}))
+
+        with patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
+            from agent.slack_bot import _handle_recommendations
+            result = _handle_recommendations()
+        assert "No recommendations" in result
+
+    def test_lists_open_recommendations_by_default(self, tmp_path):
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({
+            "last_updated": "2026-04-14",
+            "recommendations": [
+                {"id": "2026-04-14_1", "title": "Open Rec", "status": "recommended",
+                 "complexity": "Low", "recommended_on": "2026-04-14", "why_now": "urgent",
+                 "built_project_id": None},
+                {"id": "2026-04-07_1", "title": "Built Rec", "status": "built",
+                 "complexity": "High", "recommended_on": "2026-04-07",
+                 "built_project_id": "some_proj", "why_now": ""},
+            ],
+        }))
+
+        with patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
+            from agent.slack_bot import _handle_recommendations
+            result = _handle_recommendations()
+
+        assert "Open Rec" in result
+        assert "Built Rec" not in result
+
+    def test_all_shows_built_and_open(self, tmp_path):
+        recs_file = tmp_path / "recs.json"
+        recs_file.write_text(json.dumps({
+            "last_updated": "2026-04-14",
+            "recommendations": [
+                {"id": "2026-04-14_1", "title": "Open Rec", "status": "recommended",
+                 "complexity": "Low", "recommended_on": "2026-04-14", "why_now": "",
+                 "built_project_id": None},
+                {"id": "2026-04-07_1", "title": "Built Rec", "status": "built",
+                 "complexity": "High", "recommended_on": "2026-04-07",
+                 "built_project_id": "some_proj", "why_now": ""},
+            ],
+        }))
+
+        with patch.object(slack_bot_module, "RECOMMENDATIONS_PATH", str(recs_file)):
+            from agent.slack_bot import _handle_recommendations
+            result = _handle_recommendations("all")
+
+        assert "Open Rec" in result
+        assert "Built Rec" in result
 
 
 # ---------------------------------------------------------------------------

@@ -19,12 +19,14 @@ from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
 
 from agent.prompts import CONVERSATION_SYSTEM_PROMPT
+from agent.recommendations import append_week, format_history, mark_built
 from agent.synthesizer import run_full_pipeline
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 MEMORY_PATH = os.path.join(os.path.dirname(__file__), "..", "memory", "projects.json")
+RECOMMENDATIONS_PATH = os.path.join(os.path.dirname(__file__), "..", "memory", "recommendations.json")
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "sources.json")
 MODEL = "claude-sonnet-4-6"
 
@@ -137,7 +139,10 @@ def _get_reply(user_text, thread_ts):
     history = _thread_conversations.get(thread_ts, [])
     history.append({"role": "user", "content": user_text})
 
-    system_prompt = CONVERSATION_SYSTEM_PROMPT.format(digest_text=_current_digest)
+    system_prompt = CONVERSATION_SYSTEM_PROMPT.format(
+        digest_text=_current_digest,
+        recommendations_history=format_history(RECOMMENDATIONS_PATH),
+    )
 
     client = anthropic.Anthropic()
     message = client.messages.create(
@@ -159,9 +164,19 @@ def _get_reply(user_text, thread_ts):
 # ---------------------------------------------------------------------------
 
 def _handle_project_done(text):
-    """Add a new project to memory/projects.json."""
+    """Add a new project to memory/projects.json.
+
+    Optional `rec=<id>` prefix links the project to a prior recommendation:
+    `/project-done rec=2026-04-14_1 Project Name: short description`
+    """
     if not text.strip():
-        return "Usage: `/project-done Project Name: short description`"
+        return "Usage: `/project-done [rec=<id>] Project Name: short description`"
+
+    rec_id = None
+    rec_match = re.match(r"^\s*rec=(\S+)\s+(.*)$", text)
+    if rec_match:
+        rec_id = rec_match.group(1)
+        text = rec_match.group(2)
 
     parts = text.split(":", 1)
     name = parts[0].strip()
@@ -187,7 +202,41 @@ def _handle_project_done(text):
     with open(MEMORY_PATH, "w") as f:
         json.dump(data, f, indent=2)
 
-    return f"Added *{name}* to your project portfolio."
+    response = f"Added *{name}* to your project portfolio."
+    if rec_id:
+        linked = mark_built(rec_id, project_id, path=RECOMMENDATIONS_PATH)
+        if linked:
+            response += f" Linked to recommendation `{rec_id}`."
+        else:
+            response += f" Warning: recommendation `{rec_id}` not found."
+    return response
+
+
+def _handle_recommendations(text=""):
+    """List tracked recommendations. Defaults to open; `all` shows everything."""
+    from agent.recommendations import load_store
+
+    store = load_store(RECOMMENDATIONS_PATH)
+    recs = store.get("recommendations", [])
+    if not recs:
+        return "No recommendations tracked yet."
+
+    show_all = "all" in text.lower()
+    filtered = recs if show_all else [r for r in recs if r.get("status") != "built"]
+    if not filtered:
+        return "No open recommendations. Everything recommended has been built."
+
+    lines = [f"*Tracked recommendations* ({'all' if show_all else 'open'}):"]
+    for rec in filtered:
+        marker = ":white_check_mark:" if rec.get("status") == "built" else ":bulb:"
+        link = f" -> `{rec['built_project_id']}`" if rec.get("built_project_id") else ""
+        lines.append(
+            f"{marker} `{rec['id']}` *{rec['title']}* "
+            f"({rec.get('complexity', '?')}, {rec.get('recommended_on', '?')}){link}"
+        )
+        if rec.get("why_now"):
+            lines.append(f"     _{rec['why_now']}_")
+    return "\n".join(lines)
 
 
 def _handle_sources():
@@ -207,9 +256,16 @@ def _handle_sources():
 def _handle_digest_now():
     """Run an immediate digest, post it to the channel, and confirm."""
     try:
-        digest = run_full_pipeline()
-        if digest:
+        result = run_full_pipeline()
+        if result:
+            digest, recommendations = result
             post_digest(digest)
+            new_entries = append_week(recommendations, path=RECOMMENDATIONS_PATH)
+            if new_entries:
+                return (
+                    f"Digest generated and posted. Tracked "
+                    f"{len(new_entries)} recommendation(s)."
+                )
             return "Digest generated and posted to the channel."
         return "No content collected. Check source configuration and try again."
     except Exception as e:
@@ -259,6 +315,8 @@ def _process_event(client, req):
             response_text = _handle_digest_now()
         elif command == "/sources":
             response_text = _handle_sources()
+        elif command == "/recommendations":
+            response_text = _handle_recommendations(text)
         else:
             response_text = f"Unknown command: {command}"
 
@@ -296,10 +354,12 @@ def start_socket_mode():
 # ---------------------------------------------------------------------------
 
 def deliver_digest(fixture_path=None):
-    """Full pipeline: collect -> synthesize -> post to Slack."""
-    digest = run_full_pipeline(fixture_path=fixture_path)
-    if digest:
+    """Full pipeline: collect -> synthesize -> post to Slack + track recs."""
+    result = run_full_pipeline(fixture_path=fixture_path)
+    if result:
+        digest, recommendations = result
         post_digest(digest)
+        append_week(recommendations, path=RECOMMENDATIONS_PATH)
         return digest
     logger.warning("No digest generated")
     return None
