@@ -1,4 +1,41 @@
 {
-  "last_updated": "",
-  "recommendations": []
+  "last_updated": "2026-04-13",
+  "recommendations": [
+    {
+      "id": "2026-04-13_1",
+      "recommended_on": "2026-04-13",
+      "title": "AI Content Audit & Pre-Launch QA Workflow",
+      "trend_signal": "MarTech's framework for auditing generative AI outputs identifies a governance gap as AI-generated content scales inside marketing teams. This is an operational problem, not just a creative one.",
+      "what_to_build": "A structured pre-launch review tool that runs AI-generated content (nurture emails, landing page copy, campaign assets) through a configurable checklist covering brand voice, compliance flags, and legal risk indicators before assets are approved in Marketo or pushed to campaign. The tool should accept input via a form or Slack command, run the content against a set of scored criteria using an LLM, and output a pass/fail summary with flagged items. Reviewers get a structured brief, not a wall of AI text. Integrate with campaign approval workflows so nothing bypasses the gate.",
+      "why_now": "AI-assisted content production is already happening on most teams, but the audit process just doesn't exist yet. The longer this gap sits open, the higher the brand and legal exposure. Building this now positions it as infrastructure before a mistake forces the conversation.",
+      "complexity": "Medium",
+      "inferred": false,
+      "status": "recommended",
+      "built_project_id": null
+    },
+    {
+      "id": "2026-04-13_2",
+      "recommended_on": "2026-04-13",
+      "title": "Email Attribution Intelligence Layer",
+      "trend_signal": "MarTech reports that email delivers ROI but most teams can't prove it, and Dell's AI traffic data shows conversions lagging despite rising engagement. Both point to attribution as the core failure.",
+      "what_to_build": "A Marketo-to-SFDC attribution analysis tool that pulls email engagement data, maps it against pipeline and opportunity influence using existing SFDC fields, and generates a plain-language ROI summary report on a configurable cadence. Use AI to identify which email programs, segments, and send patterns correlate most strongly with downstream pipeline, not just opens and clicks. Output should be executive-ready: a one-page summary with supporting data, not a BI dashboard that requires interpretation. The goal is giving MOPS a defensible, repeatable way to make the email investment case.",
+      "why_now": "Budget season creates cyclical demand for this justification, and with AI traffic muddying multi-touch attribution further, teams that can clearly isolate email's contribution will hold their budget lines. This is a recurring pain with compounding urgency.",
+      "complexity": "Medium",
+      "inferred": false,
+      "status": "recommended",
+      "built_project_id": null
+    },
+    {
+      "id": "2026-04-13_3",
+      "recommended_on": "2026-04-13",
+      "title": "AI Campaign Workflow Configurator",
+      "trend_signal": "The 6-step AI seasonal campaign workflow and the Applied AI for MOPS build-in-production lessons both point toward repeatable, input-structured AI workflows as the differentiator, but most teams are running these ad hoc.",
+      "what_to_build": "A campaign brief-to-workflow generator that takes structured inputs (segment, goal, channel mix, seasonal context, CRM data signals) and outputs a complete campaign plan scaffold including suggested Marketo program structure, email sequence logic, audience criteria, and key messaging pillars. The tool doesn't replace campaign managers; it eliminates the blank-page problem and enforces input discipline before build begins. Think of it as a configured intake form that produces an executable brief, not just a summary. This would naturally extend the existing Campaign Operations Slackbot's capabilities without duplicating it.",
+      "why_now": "As teams move faster with AI, the lack of structured inputs upstream leads to inconsistent outputs downstream. Solving for campaign planning intake is foundational to everything else.",
+      "complexity": "High",
+      "inferred": true,
+      "status": "recommended",
+      "built_project_id": null
+    }
+  ]
 }
