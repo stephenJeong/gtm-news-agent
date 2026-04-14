@@ -14,13 +14,14 @@ import anthropic
 
 from agent.collector import collect_all
 from agent.prompts import SYNTHESIS_SYSTEM_PROMPT, SYNTHESIS_USER_PROMPT
+from agent.recommendations import extract_recommendations
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 MEMORY_PATH = os.path.join(os.path.dirname(__file__), "..", "memory", "projects.json")
 MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 2000
+MAX_TOKENS = 3000
 
 
 def load_projects(path=None):
@@ -66,7 +67,12 @@ def format_items(items):
 
 
 def synthesize(items, projects=None, model=None):
-    """Call Claude API to produce the weekly digest."""
+    """Call Claude API to produce the weekly digest.
+
+    Returns a tuple (digest_markdown, recommendations_list). The markdown
+    has the machine-readable recommendations block stripped out so it's
+    safe to post directly to Slack.
+    """
     if projects is None:
         projects = load_projects()
 
@@ -85,13 +91,20 @@ def synthesize(items, projects=None, model=None):
         messages=[{"role": "user", "content": user_prompt}],
     )
 
-    digest = message.content[0].text
-    logger.info("Digest generated (%d chars)", len(digest))
-    return digest
+    raw = message.content[0].text
+    digest, recommendations = extract_recommendations(raw)
+    logger.info(
+        "Digest generated (%d chars, %d recommendations)",
+        len(digest), len(recommendations),
+    )
+    return digest, recommendations
 
 
 def run_full_pipeline(fixture_path=None):
-    """Run collector -> synthesizer pipeline. Optionally use fixture data."""
+    """Run collector -> synthesizer pipeline. Optionally use fixture data.
+
+    Returns (digest_markdown, recommendations_list) or None if no items.
+    """
     if fixture_path:
         with open(fixture_path) as f:
             items = json.load(f)
@@ -103,8 +116,7 @@ def run_full_pipeline(fixture_path=None):
         logger.warning("No items collected. Skipping synthesis.")
         return None
 
-    digest = synthesize(items)
-    return digest
+    return synthesize(items)
 
 
 def main():
@@ -122,11 +134,12 @@ def main():
     )
     args = parser.parse_args()
 
-    digest = run_full_pipeline(fixture_path=args.fixture)
-    if digest is None:
+    result = run_full_pipeline(fixture_path=args.fixture)
+    if result is None:
         print("No content to synthesize.")
         sys.exit(1)
 
+    digest, _recommendations = result
     if args.output:
         with open(args.output, "w") as f:
             f.write(digest)
