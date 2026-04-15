@@ -47,6 +47,26 @@ def _parse_rss_date(entry):
     return None
 
 
+def _resolve_google_news_url(url):
+    """Decode a Google News redirect URL to the real publisher URL.
+
+    Returns the decoded URL on success, or the original URL on failure.
+    Google News wraps article links as news.google.com/rss/articles/CBMi...
+    which is a base64 protobuf that needs Google's internal API to resolve.
+    """
+    if not url or "news.google.com" not in url:
+        return url
+    try:
+        from googlenewsdecoder import gnewsdecoder
+        result = gnewsdecoder(url, interval=1)
+        if result.get("status") and result.get("decoded_url"):
+            return result["decoded_url"]
+        logger.warning("gnewsdecoder failed for %s: %s", url[:80], result.get("message", "unknown"))
+    except Exception as e:
+        logger.warning("gnewsdecoder exception for %s: %s", url[:80], e)
+    return url
+
+
 def _fetch_snippet_from_url(url, chars=500):
     """Fallback: fetch the article page and grab the first N chars of body text."""
     try:
@@ -93,11 +113,13 @@ def collect_rss(source, cutoff=None):
             if not any(kw in combined for kw in filter_keywords):
                 continue
 
+        resolved_url = _resolve_google_news_url(getattr(entry, "link", ""))
+
         items.append({
             "source_id": source["id"],
             "source_name": source["name"],
             "title": title,
-            "url": getattr(entry, "link", ""),
+            "url": resolved_url,
             "published_date": pub_date.strftime("%Y-%m-%d") if pub_date else "",
             "snippet": snippet[:500],
             "type": "article",

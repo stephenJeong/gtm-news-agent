@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent.collector import (
+    _resolve_google_news_url,
     collect_all,
     collect_linkedin,
     collect_rss,
@@ -244,3 +245,28 @@ class TestCollectAll:
         sources = [{"id": "x", "name": "X", "type": "magic_portal", "url": "http://example.com"}]
         items = collect_all(sources)
         assert items == []
+
+
+class TestResolveGoogleNewsUrl:
+    def test_passthrough_non_google_url(self):
+        url = "https://martech.org/some-article"
+        assert _resolve_google_news_url(url) == url
+
+    def test_passthrough_empty_url(self):
+        assert _resolve_google_news_url("") == ""
+
+    def test_decodes_google_news_url(self):
+        google_url = "https://news.google.com/rss/articles/CBMiABC"
+        decoded = "https://publisher.com/real-article"
+        with patch("googlenewsdecoder.gnewsdecoder", return_value={"status": True, "decoded_url": decoded}):
+            assert _resolve_google_news_url(google_url) == decoded
+
+    def test_falls_back_to_original_on_decoder_failure(self):
+        google_url = "https://news.google.com/rss/articles/CBMiABC"
+        with patch("googlenewsdecoder.gnewsdecoder", return_value={"status": False, "message": "boom"}):
+            assert _resolve_google_news_url(google_url) == google_url
+
+    def test_falls_back_to_original_on_decoder_exception(self):
+        google_url = "https://news.google.com/rss/articles/CBMiABC"
+        with patch("googlenewsdecoder.gnewsdecoder", side_effect=RuntimeError("network down")):
+            assert _resolve_google_news_url(google_url) == google_url

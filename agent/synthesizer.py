@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 MEMORY_PATH = os.path.join(os.path.dirname(__file__), "..", "memory", "projects.json")
 MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 3000
+MAX_TOKENS = 8000
 
 
 def load_projects(path=None):

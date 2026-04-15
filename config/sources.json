@@ -17,5 +17,37 @@
     "type": "substack_rss",
     "url": "https://martech.org/feed/",
     "filter_keywords": ["AI", "automation", "marketing ops", "GTM", "lead", "attribution"]
+  },
+  {
+    "id": "gnews_marketing_ops_ai",
+    "name": "Google News: marketing ops + AI",
+    "type": "substack_rss",
+    "url": "https://news.google.com/rss/search?q=%22marketing+operations%22+AI+when:7d&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "id": "gnews_revops_ai",
+    "name": "Google News: RevOps + AI",
+    "type": "substack_rss",
+    "url": "https://news.google.com/rss/search?q=%22revenue+operations%22+AI+when:7d&hl=en-US&gl=US&ceid=US:en"
+  },
+  {
+    "id": "gnews_gtm_automation",
+    "name": "Google News: GTM automation",
+    "type": "substack_rss",
+    "url": "https://news.google.com/rss/search?q=(%22go-to-market%22+OR+GTM)+(automation+OR+AI)+(sales+OR+marketing+OR+B2B)+when:7d&hl=en-US&gl=US&ceid=US:en",
+    "filter_keywords": ["sales", "marketing", "B2B", "SaaS", "GTM", "revenue", "pipeline", "CRM"]
+  },
+  {
+    "id": "gnews_lead_scoring",
+    "name": "Google News: lead scoring/routing",
+    "type": "substack_rss",
+    "url": "https://news.google.com/rss/search?q=(%22lead+scoring%22+OR+%22lead+routing%22)+(B2B+OR+SaaS+OR+marketing+OR+sales+OR+CRM)+-housing+-realestate+-listings+-zillow+when:7d&hl=en-US&gl=US&ceid=US:en",
+    "filter_keywords": ["marketing", "sales", "B2B", "SaaS", "CRM", "pipeline", "MQL", "SQL"]
+  },
+  {
+    "id": "gnews_attribution",
+    "name": "Google News: marketing attribution",
+    "type": "substack_rss",
+    "url": "https://news.google.com/rss/search?q=%22marketing+attribution%22+when:7d&hl=en-US&gl=US&ceid=US:en"
   }
 ]
